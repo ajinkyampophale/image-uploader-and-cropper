@@ -1,0 +1,141 @@
+<div class="container">
+
+    <div class="wrapper">
+
+        <form class="text-center" id="imgupload_form" name="imgupload_form">
+
+            <div id="main-cropper"></div>
+
+            <div class="row mb-3">
+
+                <div class="col-sm-4"></div>
+                <div class="col-sm-4">
+                    <input type="file" class="form-control" name="uploaded_img" id="uploaded_img" onchange="readFile(this);">
+                    <div id="error" class="error" style="display:none;"></div>
+                </div>
+
+                <div class="col-sm-1">
+                    <button type="button" class="btn btn-primary" onclick="validate();">Upload</button>
+                </div>
+
+                <div class="col-sm-3"></div>
+
+                <input type="hidden" id="imagebase64" name="imagebase64">
+
+            </div>
+
+            <div class="row">
+                <div class="col-sm-3"></div>
+                <div class="col-sm-6">
+                    <div class="alert alert-success" style="display:none;"></div>
+                    <div class="alert alert-danger" style="display:none;"></div>
+                </div>
+                <div class="col-sm-3"></div>
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+<script>
+
+    var upload_config;
+
+    $(document).ready(function () {
+
+        upload_config = $('#main-cropper').croppie({
+            viewport: {
+                width: 200,
+                height: 200,
+                type: 'circle'
+            },
+            boundary: {
+                width: 300,
+                height: 300
+            },
+            // showZoomer: false,
+            url: '../images/blank_img.jpg'
+        });
+
+    });
+
+
+    function validate() {
+
+        let uploaded_img = document.getElementById('uploaded_img');
+        let uploaded_img_value = document.getElementById('uploaded_img').value;
+        let flag = 0;
+
+        let checkFileResult = check_file(uploaded_img, ['jpg', 'jpeg', 'png'], 500, 'kb');
+
+        if (!checkFileResult[0]) {
+            $('#error').html(checkFileResult[1]);
+            $('#error').show();
+            flag = 1;
+        }
+        else {
+            $('#error').hide();
+        }
+
+        if (flag == 0) {
+
+            upload_config.croppie('result', {
+                type: 'canvas',
+                size: 'original'
+            })
+                .then(function (resp) {
+
+                    $('#imagebase64').val(resp);
+
+                    let formData = new FormData($("#imgupload_form")[0]);
+
+                    $.ajax({
+                        url: '/',
+                        type: 'POST',
+                        data: formData,
+                        cache: false,
+                        contentType: false,
+                        processData: false,
+                        dataType: 'json',
+                        success: function ({ status, message }) {
+
+                            if (status == 200) {
+                                $('.alert-success').html('<a href="#" class="close" data-dismiss="alert">&times;</a>' + message);
+                                $('.alert-success').fadeIn('slow').delay(1000).fadeOut('slow');
+                                document.getElementById("imgupload_form").reset();
+                            }
+                            else {
+                                $('.alert-danger').html('<a href="#" class="close" data-dismiss="alert">&times;</a>' + message);
+                                $('.alert-danger').fadeIn('slow').delay(2000).fadeOut('slow');
+                            }
+
+                        }
+
+                    });
+
+                });
+        }
+
+    }
+
+
+    function readFile(input) {
+
+        if (input.files && input.files[0]) {
+
+            var reader = new FileReader();
+
+            reader.onload = function (e) {
+                $('#main-cropper').croppie('bind', {
+                    url: e.target.result
+                });
+            }
+
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+
+</script>
